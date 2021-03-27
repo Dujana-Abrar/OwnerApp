@@ -119,7 +119,7 @@ public class AddAppartments extends AppCompatActivity {
             apartment.put("acc_name", name);
             apartment.put("address", address);
             apartment.put("image", "qisi");
-            apartment.put("location", "location");
+            apartment.put("location", city);
             apartment.put("min_duration", "12");
             apartment.put("rent", rent);
             apartment.put("room", "room");
