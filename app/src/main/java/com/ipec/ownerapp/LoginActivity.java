@@ -26,7 +26,7 @@ import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.Map;
 
-public class Login extends AppCompatActivity {
+public class LoginActivity extends AppCompatActivity {
 
     private static final String TAG = "Login";
     Button signUp;

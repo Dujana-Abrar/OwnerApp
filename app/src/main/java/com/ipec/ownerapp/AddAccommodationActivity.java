@@ -37,14 +37,14 @@ import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 
-public class AddAppartments extends AppCompatActivity {
+public class AddAccommodationActivity extends AppCompatActivity {
 
 
     private static final int PICK_IMAGE = 1;
     FirebaseFirestore db = FirebaseFirestore.getInstance();
-    private static final String TAG = "AddAppartments";
+    private static final String TAG = "AddAccommodations";
     List<String> sizes;
-    Button add;
+    Button btn_add;
     String selectedSpinnerItem;
     Spinner spinner;
     ImageView imageView;
@@ -54,10 +54,11 @@ public class AddAppartments extends AppCompatActivity {
     private String path;
 
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_add_appartments);
+        setContentView(R.layout.activity_addaccommodation);
 
         // get the Firebase  storage reference
         storage = FirebaseStorage.getInstance();
@@ -65,8 +66,8 @@ public class AddAppartments extends AppCompatActivity {
 
         sizes = new ArrayList<>();
         getListItems();
-        add = findViewById(R.id.Add_Data);
-        add.setOnClickListener (new View.OnClickListener() {
+        btn_add = findViewById(R.id.btn_add);
+        btn_add.setOnClickListener (new View.OnClickListener() {
             public void onClick(View v)
             {
                 addDataToDatabase();
@@ -103,9 +104,15 @@ public class AddAppartments extends AppCompatActivity {
 
             // Defining the child of storageReference
 
-            path = "images/" + UUID.randomUUID().toString();
-            StorageReference ref = storageReference.child(path);
 
+            StorageReference ref = storageReference.child("images/" + UUID.randomUUID().toString());
+            ref.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
+                @Override
+                public void onSuccess(Uri uri) {
+                    path=uri.toString();
+                    Log.d("path", path);
+                }
+            });
             // adding listeners on upload
             // or failure of image
             ref.putFile(filePath)
@@ -116,7 +123,7 @@ public class AddAppartments extends AppCompatActivity {
                                 public void onSuccess(UploadTask.TaskSnapshot taskSnapshot)
                                 {
                                     progressDialog.dismiss();
-                                    Toast.makeText(AddAppartments.this, "Image Uploaded!!", Toast.LENGTH_LONG).show();
+                                    Toast.makeText(AddAccommodationActivity.this, "Image Uploaded!!", Toast.LENGTH_LONG).show();
                                 }
                             })
                     .addOnFailureListener(new OnFailureListener() {
@@ -124,7 +131,7 @@ public class AddAppartments extends AppCompatActivity {
                         public void onFailure(@NonNull Exception e)
                         {
                             progressDialog.dismiss();
-                            Toast.makeText(AddAppartments.this, "Failed " + e.getMessage(), Toast.LENGTH_LONG).show();
+                            Toast.makeText(AddAccommodationActivity.this, "Failed " + e.getMessage(), Toast.LENGTH_LONG).show();
                         }
                     })
                     .addOnProgressListener(
@@ -187,40 +194,41 @@ public class AddAppartments extends AppCompatActivity {
 
     public void addDataToDatabase()
     {
-        EditText TVname = findViewById(R.id.name);
-        EditText TVcity = findViewById(R.id.city);
-        EditText TVdescription = findViewById(R.id.description);
-        EditText TVrent = findViewById(R.id.rent);
-        EditText TVaddress = findViewById(R.id.address);
+        EditText TVname = findViewById(R.id.editText_name);
+        EditText TVcity = findViewById(R.id.editText_city);
+        EditText TVnotice = findViewById(R.id.editText_notice);
+        EditText TVrent = findViewById(R.id.editText_rent);
+        EditText TVaddress = findViewById(R.id.editText_address);
 
         String name = TVname.getText().toString();
         String city = TVcity.getText().toString();
-        String description = TVdescription.getText().toString();
+        String notice = TVnotice.getText().toString();
         String rent = TVrent.getText().toString();
         String address = TVaddress.getText().toString();
 
-        if(name.isEmpty() || city.isEmpty() || description.isEmpty() || rent.isEmpty() || address.isEmpty() || selectedSpinnerItem.isEmpty())
+        if(name.isEmpty() || city.isEmpty() || notice.isEmpty() || rent.isEmpty() || address.isEmpty() || selectedSpinnerItem.isEmpty())
         {
             Toast.makeText(getApplicationContext(), "All Fields are mandatory", Toast.LENGTH_LONG).show();
         }
 
         else {
             uploadImage();
-            Map<String, Object> apartment = new HashMap<>();
-            apartment.put("acc_name", name);
-            apartment.put("address", address);
-            apartment.put("image", path);
-            apartment.put("location", city);
-            apartment.put("min_duration", "12");
-            apartment.put("rent", rent);
-            apartment.put("room", "room");
+            Map<String, Object> accMap = new HashMap<>();
+            accMap.put("acc_name", name);
+            accMap.put("address", address);
+            accMap.put("image", path);
+            accMap.put("location", city);
+            accMap.put("notice_period", notice);
+            accMap.put("rent", rent);
+            accMap.put("room", selectedSpinnerItem);
 
             db.collection("accommodations").document(generateRandom())
-                    .set(apartment)
+                    .set(accMap)
                     .addOnSuccessListener(new OnSuccessListener<Void>() {
                         @Override
                         public void onSuccess(Void aVoid) {
                             Log.d(TAG, "DocumentSnapshot successfully written!");
+                            finish();
                         }
                     }).addOnFailureListener(new OnFailureListener() {
                 @Override

@@ -15,10 +15,10 @@
         android:theme="@style/Theme.OwnerApp.NoActionBar"
         android:usesCleartextTraffic="true">
 
-        <activity android:name=".MainActivity"></activity>
-        <activity android:name=".AddAppartments" />
+        <activity android:name=".MainActivity" />
+        <activity android:name=".AddAccommodationActivity" />
         <activity
-            android:name=".Login"
+            android:name=".LoginActivity"
             android:label="@string/app_name"
             android:theme="@style/Theme.OwnerApp.NoActionBar">
             <intent-filter>
