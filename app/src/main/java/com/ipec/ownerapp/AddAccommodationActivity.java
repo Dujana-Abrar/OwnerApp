@@ -5,6 +5,8 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.app.ProgressDialog;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
@@ -43,10 +45,10 @@ public class AddAccommodationActivity extends AppCompatActivity {
     private static final int PICK_IMAGE = 1;
     FirebaseFirestore db = FirebaseFirestore.getInstance();
     private static final String TAG = "AddAccommodations";
-    List<String> sizes;
+    List<String> sizes, statuses;
     Button btn_add;
-    String selectedSpinnerItem;
-    Spinner spinner;
+    String selectedSpinnerItem, selectedParkingSpinnerItem;
+    Spinner spinner, spinner_parking;
     ImageView imageView;
     Uri filePath;
     FirebaseStorage storage;
@@ -59,18 +61,22 @@ public class AddAccommodationActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_addaccommodation);
+        spinner = findViewById(R.id.spinner);
+        spinner_parking = findViewById(R.id.spinner_parking);
 
         // get the Firebase  storage reference
         storage = FirebaseStorage.getInstance();
         storageReference = storage.getReference();
 
         sizes = new ArrayList<>();
+        statuses = new ArrayList<>();
         getListItems();
         btn_add = findViewById(R.id.btn_add);
         btn_add.setOnClickListener (new View.OnClickListener() {
             public void onClick(View v)
             {
-                addDataToDatabase();
+
+                uploadImage();
             }});
 
         imageView = findViewById(R.id.imageView2);
@@ -106,13 +112,7 @@ public class AddAccommodationActivity extends AppCompatActivity {
 
 
             StorageReference ref = storageReference.child("images/" + UUID.randomUUID().toString());
-            ref.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
-                @Override
-                public void onSuccess(Uri uri) {
-                    path=uri.toString();
-                    Log.d("path", path);
-                }
-            });
+
             // adding listeners on upload
             // or failure of image
             ref.putFile(filePath)
@@ -124,6 +124,21 @@ public class AddAccommodationActivity extends AppCompatActivity {
                                 {
                                     progressDialog.dismiss();
                                     Toast.makeText(AddAccommodationActivity.this, "Image Uploaded!!", Toast.LENGTH_LONG).show();
+                                    //StorageReference ref2 = storageReference.child("images/" + UUID.randomUUID().toString());
+                                    ref.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
+                                        @Override
+                                        public void onSuccess(Uri uri) {
+                                            path = uri.toString();
+                                            addDataToDatabase();
+                                            Toast.makeText(AddAccommodationActivity.this, ""+path, Toast.LENGTH_SHORT).show();
+                                        }
+                                    })
+                                    .addOnFailureListener(new OnFailureListener() {
+                                        @Override
+                                        public void onFailure(@NonNull Exception e) {
+                                            Toast.makeText(AddAccommodationActivity.this, "URL not stored in DB", Toast.LENGTH_SHORT).show();
+                                        }
+                                    });
                                 }
                             })
                     .addOnFailureListener(new OnFailureListener() {
@@ -147,11 +162,43 @@ public class AddAccommodationActivity extends AppCompatActivity {
                                     progressDialog.setMessage("Uploaded " + (int)progress + "%");
                                 }
                             });
+
+
         }
     }
 
-    public void getListItems()
-    {
+    public void getListItems() {
+
+        db.collection("parking")
+                .get()
+                .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                    @Override
+                    public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                        if (task.isSuccessful()) {
+                            for (QueryDocumentSnapshot document : task.getResult()) {
+                                String status = document.getString("status");
+                                statuses.add(status);
+                                Log.d(TAG, document.getId() + " => " + document.getData());
+                            }
+                        }
+                        ArrayAdapter<String> adapter2 = new ArrayAdapter<>(getApplicationContext(), android.R.layout.simple_spinner_item, statuses);
+                        adapter2.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                        spinner_parking.setAdapter(adapter2);
+                        spinner_parking.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                            @Override
+                            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                                selectedParkingSpinnerItem = parent.getItemAtPosition(position).toString();
+                            }
+
+                            @Override
+                            public void onNothingSelected(AdapterView<?> parent) {
+
+                            }
+                        });
+
+                    }
+                });
+
         db.collection("rooms")
                 .get()
                 .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
@@ -165,7 +212,7 @@ public class AddAccommodationActivity extends AppCompatActivity {
                                 Log.d(TAG, document.getId() + " => " + document.getData());
                             }
 
-                            spinner = findViewById(R.id.spinner);
+
                             ArrayAdapter<String> adapter = new ArrayAdapter<>(getApplicationContext(), android.R.layout.simple_spinner_item, sizes);
                             adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
                             spinner.setAdapter(adapter);
@@ -212,7 +259,7 @@ public class AddAccommodationActivity extends AppCompatActivity {
         }
 
         else {
-            uploadImage();
+
             Map<String, Object> accMap = new HashMap<>();
             accMap.put("acc_name", name);
             accMap.put("address", address);
@@ -221,6 +268,7 @@ public class AddAccommodationActivity extends AppCompatActivity {
             accMap.put("notice_period", notice);
             accMap.put("rent", rent);
             accMap.put("room", selectedSpinnerItem);
+            accMap.put("parking", selectedParkingSpinnerItem);
 
             db.collection("accommodations").document(generateRandom())
                     .set(accMap)
